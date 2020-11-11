@@ -47,6 +47,7 @@
 #define FINGERPRINT_PASSVERIFY 0x21 //!< Verify the fingerprint passed
 #define FINGERPRINT_STARTCODE                                                  \
   0xEF01 //!< Fixed falue of EF01H; High byte transferred first
+#define FINGERPRINT_NO_FREE_SPACE 0x30
 
 #define FINGERPRINT_COMMANDPACKET 0x1 //!< Command packet
 #define FINGERPRINT_DATAPACKET                                                 \
@@ -78,6 +79,9 @@
 #define FINGERPRINT_LEDON 0x50         //!< Turn on the onboard LED
 #define FINGERPRINT_LEDOFF 0x51        //!< Turn off the onboard LED
 
+#define FINGERPRINT_WRITENOTEPAD 0x18
+#define FINGERPRINT_READNOTEPAD 0x19
+
 #define FINGERPRINT_LED_BREATHING 0x01   //!< Breathing light
 #define FINGERPRINT_LED_FLASHING 0x02    //!< Flashing light
 #define FINGERPRINT_LED_ON 0x03          //!< Always on
@@ -91,6 +95,17 @@
 //#define FINGERPRINT_DEBUG
 
 #define DEFAULTTIMEOUT 1000 //!< UART reading timeout in milliseconds
+
+typedef struct
+{
+  uint16_t status_reg;
+  uint16_t system_id;
+  uint16_t capacity;
+  uint16_t security_level;
+  uint32_t device_addr;
+  uint16_t packet_len;
+  uint16_t baud_rate;
+} Fingerprint_System_Params;
 
 ///! Helper class to craft UART packets
 struct Adafruit_Fingerprint_Packet {
@@ -150,6 +165,7 @@ public:
   uint8_t deleteModel(uint16_t id);
   uint8_t fingerFastSearch(void);
   uint8_t fingerSearch(uint8_t slot = 1);
+  uint8_t getFreeIndex(uint16_t *id);
   uint8_t getTemplateCount(void);
   uint8_t setPassword(uint32_t password);
   uint8_t LEDcontrol(bool on);
@@ -159,6 +175,9 @@ public:
   void writeStructuredPacket(const Adafruit_Fingerprint_Packet &p);
   uint8_t getStructuredPacket(Adafruit_Fingerprint_Packet *p,
                               uint16_t timeout = DEFAULTTIMEOUT);
+
+  uint8_t writeNotepad(uint8_t location, char *note);
+  uint8_t readNotepad(uint8_t location, char *note);
 
   /// The matching location that is set by fingerFastSearch()
   uint16_t fingerID;

@@ -323,6 +323,35 @@ uint8_t Adafruit_Fingerprint::fingerFastSearch(void) {
 
 /**************************************************************************/
 /*!
+    @brief   Ask the sensor for the first unused index number.
+    @returns <code>FINGERPRINT_OK</code> on success
+    @returns <code>FINGERPRINT_PACKETRECIEVEERR</code> on communication er
+    @returns <code>FINGERPRINT_NO_FREE_SPACE</code> when no free space found
+*/
+/**************************************************************************/
+uint8_t Adafruit_Fingerprint::getFreeIndex(uint16_t *id) {
+  uint8_t i = 0;
+  while(true) {
+    uint8_t l = loadModel(i);
+    switch (l) {
+      case FINGERPRINT_OK:
+        break;
+      case FINGERPRINT_BADLOCATION:
+        *id = 0;
+        return FINGERPRINT_NO_FREE_SPACE;
+      case FINGERPRINT_DBRANGEFAIL:
+        *id = i;
+        return FINGERPRINT_OK;
+    }
+    i++;
+  }
+
+  *id = 0;  // no free space found
+  return FINGERPRINT_NO_FREE_SPACE;
+}
+
+/**************************************************************************/
+/*!
     @brief   Control the built in LED
     @param on True if you want LED on, False to turn LED off
     @returns <code>FINGERPRINT_OK</code> on success
@@ -367,8 +396,8 @@ uint8_t Adafruit_Fingerprint::LEDcontrol(uint8_t control, uint8_t speed,
 /**************************************************************************/
 uint8_t Adafruit_Fingerprint::fingerSearch(uint8_t slot) {
   // search of slot starting thru the capacity
-  GET_CMD_PACKET(FINGERPRINT_SEARCH, slot, 0x00, 0x00, capacity >> 8,
-                 capacity & 0xFF);
+  GET_CMD_PACKET(FINGERPRINT_SEARCH, slot, 0x00, 0x00, (uint8_t) (capacity >> 8),
+                 (uint8_t) (capacity & 0xFF));
 
   fingerID = 0xFFFF;
   confidence = 0xFFFF;
@@ -404,6 +433,47 @@ uint8_t Adafruit_Fingerprint::getTemplateCount(void) {
 
 /**************************************************************************/
 /*!
+    @brief   Store data in fingerprint memory
+    @param   memory address (0-15)
+    @param   32 byte data array
+    @returns <code>FINGERPRINT_OK</code> on success
+    @returns <code>FINGERPRINT_PACKETRECIEVEERR</code> on communication error
+*/
+/**************************************************************************/
+uint8_t Adafruit_Fingerprint::writeNotepad(uint8_t location, char *note) {
+  SEND_CMD_PACKET(FINGERPRINT_WRITENOTEPAD, location, (uint8_t)note[0],
+                  (uint8_t)note[1], (uint8_t)note[2], (uint8_t)note[3],
+                  (uint8_t)note[4], (uint8_t)note[5], (uint8_t)note[6],
+                  (uint8_t)note[7], (uint8_t)note[8], (uint8_t)note[9],
+                  (uint8_t)note[10], (uint8_t)note[11], (uint8_t)note[12],
+                  (uint8_t)note[13], (uint8_t)note[14], (uint8_t)note[15],
+                  (uint8_t)note[16], (uint8_t)note[17], (uint8_t)note[18],
+                  (uint8_t)note[19], (uint8_t)note[20], (uint8_t)note[21],
+                  (uint8_t)note[22], (uint8_t)note[23], (uint8_t)note[24],
+                  (uint8_t)note[25], (uint8_t)note[26], (uint8_t)note[27],
+                  (uint8_t)note[28], (uint8_t)note[29], (uint8_t)note[30],
+                  (uint8_t)note[31]);
+}
+
+/**************************************************************************/
+/*!
+    @brief   Read data in fingerprint memory
+    @param   memory address (0-15)
+    @param   outputs 32 byte data array
+    @returns <code>FINGERPRINT_OK</code> on success
+    @returns <code>FINGERPRINT_PACKETRECIEVEERR</code> on communication error
+*/
+/**************************************************************************/
+uint8_t Adafruit_Fingerprint::readNotepad(uint8_t location, char *note) {
+  GET_CMD_PACKET(FINGERPRINT_READNOTEPAD, location);
+  for (uint8_t i = 0; i < 32; i++) {
+    note[i] = packet.data[i + 1];
+  }
+  return packet.data[0];
+}
+
+/**************************************************************************/
+/*!
     @brief   Set the password on the sensor (future communication will require
    password verification so don't forget it!!!)
     @param   password 32-bit password code
@@ -412,8 +482,8 @@ uint8_t Adafruit_Fingerprint::getTemplateCount(void) {
 */
 /**************************************************************************/
 uint8_t Adafruit_Fingerprint::setPassword(uint32_t password) {
-  SEND_CMD_PACKET(FINGERPRINT_SETPASSWORD, (password >> 24), (password >> 16),
-                  (password >> 8), password);
+  SEND_CMD_PACKET(FINGERPRINT_SETPASSWORD, (uint8_t) (password >> 24), (uint8_t) (password >> 16),
+                  (uint8_t) (password >> 8), (uint8_t) password);
 }
 
 /**************************************************************************/
